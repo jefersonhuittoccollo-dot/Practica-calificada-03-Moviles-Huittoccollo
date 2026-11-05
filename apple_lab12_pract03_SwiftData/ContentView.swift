@@ -15,14 +15,16 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             TeacherListView(searchText: searchText)
-                .navigationTitle("Teachers")
-                .searchable(text: $searchText, prompt: "Search teachers...")
+                .navigationTitle("Docentes")
+                .searchable(text: $searchText, prompt: "Buscar por nombre, especialidad...")
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             showingAddSheet = true
                         } label: {
-                            Image(systemName: "plus")
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(.indigo)
                         }
                     }
                 }
@@ -46,6 +48,7 @@ struct TeacherListView: View {
             } else {
                 return teacher.firstName.localizedStandardContains(searchText) ||
                        teacher.lastName.localizedStandardContains(searchText) ||
+                       teacher.specialty.localizedStandardContains(searchText) ||
                        teacher.email.localizedStandardContains(searchText)
             }
         }
@@ -53,13 +56,26 @@ struct TeacherListView: View {
     }
     
     var body: some View {
-        List {
-            ForEach(teachers) { teacher in
-                NavigationLink(destination: AddEditTeacherView(teacher: teacher)) {
-                    TeacherRowView(teacher: teacher)
+        Group {
+            if teachers.isEmpty {
+                ContentUnavailableView(
+                    "No hay docentes registrados",
+                    systemImage: "person.slash",
+                    description: Text("Presiona el botón '+' para agregar un nuevo docente.")
+                )
+            } else {
+                List {
+                    ForEach(teachers) { teacher in
+                        NavigationLink(destination: AddEditTeacherView(teacher: teacher)) {
+                            TeacherCardView(teacher: teacher)
+                        }
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                    }
+                    .onDelete(perform: deleteTeachers)
                 }
+                .listStyle(.plain)
             }
-            .onDelete(perform: deleteTeachers)
         }
     }
     
@@ -70,23 +86,67 @@ struct TeacherListView: View {
     }
 }
 
-struct TeacherRowView: View {
+struct TeacherCardView: View {
     let teacher: Teacher
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(teacher.fullName)
-                .font(.headline)
-                .foregroundStyle(.primary)
+        HStack(spacing: 14) {
+            // Avatar con iniciales
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: teacher.isActive ? [.indigo, .blue] : [.gray, .secondary],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 50, height: 50)
+                
+                Text(teacher.initials)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+            }
             
-            Text(teacher.specialty)
-                .font(.subheadline)
-                .foregroundStyle(.blue)
-            
-            Text(teacher.email)
-                .font(.caption)
-                .foregroundStyle(.gray)
+            // Información principal
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text(teacher.fullName.isEmpty ? "Sin Nombre" : teacher.fullName)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    
+                    Spacer()
+                    
+                    // Badge Activo / Inactivo
+                    Text(teacher.isActive ? "Activo" : "Inactivo")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(teacher.isActive ? Color.green.opacity(0.15) : Color.red.opacity(0.15))
+                        .foregroundStyle(teacher.isActive ? Color.green : Color.red)
+                        .clipShape(Capsule())
+                }
+                
+                if !teacher.specialty.isEmpty {
+                    Label(teacher.specialty, systemImage: "briefcase.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.indigo)
+                }
+                
+                if !teacher.email.isEmpty {
+                    Label(teacher.email, systemImage: "envelope.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
-        .padding(.vertical, 2)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 3)
+        )
     }
 }
