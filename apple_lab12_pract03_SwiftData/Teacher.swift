@@ -23,6 +23,13 @@ final class Teacher {
         "\(firstName) \(lastName)"
     }
     
+    var initials: String {
+        let f = firstName.prefix(1)
+        let l = lastName.prefix(1)
+        let result = "\(f)\(l)".uppercased()
+        return result.isEmpty ? "?" : result
+    }
+    
     init(
         firstName: String = "",
         lastName: String = "",
