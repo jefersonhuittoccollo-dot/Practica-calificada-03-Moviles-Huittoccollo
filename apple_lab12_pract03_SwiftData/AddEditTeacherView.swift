@@ -27,6 +27,13 @@ struct AddEditTeacherView: View {
         teacher != nil
     }
     
+    var currentInitials: String {
+        let f = firstName.prefix(1)
+        let l = lastName.prefix(1)
+        let res = "\(f)\(l)".uppercased()
+        return res.isEmpty ? "?" : res
+    }
+    
     init(teacher: Teacher? = nil) {
         self.teacher = teacher
         _firstName = State(initialValue: teacher?.firstName ?? "")
@@ -41,23 +48,68 @@ struct AddEditTeacherView: View {
     
     var body: some View {
         Form {
-            Section(header: Text("PERSONAL INFORMATION")) {
-                TextField("First Name", text: $firstName)
-                TextField("Last Name", text: $lastName)
-                TextField("Email", text: $email)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                TextField("Phone", text: $phone)
-                    .keyboardType(.phonePad)
-                DatePicker("Date of Birth", selection: $dateOfBirth, displayedComponents: .date)
+            // Header con Avatar en vivo
+            Section {
+                VStack(spacing: 8) {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: isActive ? [.indigo, .blue] : [.gray, .secondary],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 70, height: 70)
+                        .overlay(
+                            Text(currentInitials)
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.white)
+                        )
+                        .shadow(color: .indigo.opacity(0.3), radius: 6, x: 0, y: 3)
+                    
+                    Text(firstName.isEmpty && lastName.isEmpty ? "Nuevo Docente" : "\(firstName) \(lastName)")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+            }
+            .listRowBackground(Color.clear)
+            
+            // Sección Personal
+            Section(header: Label("Información Personal", systemImage: "person.fill").foregroundStyle(.indigo)) {
+                TextField("Nombres", text: $firstName)
+                TextField("Apellidos", text: $lastName)
+                
+                HStack {
+                    Image(systemName: "envelope.fill").foregroundStyle(.gray)
+                    TextField("Correo electrónico", text: $email)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                }
+                
+                HStack {
+                    Image(systemName: "phone.fill").foregroundStyle(.gray)
+                    TextField("Teléfono", text: $phone)
+                        .keyboardType(.phonePad)
+                }
+                
+                DatePicker("Fecha de Nacimiento", selection: $dateOfBirth, displayedComponents: .date)
             }
             
-            Section(header: Text("PROFESSIONAL INFORMATION")) {
-                TextField("Specialty", text: $specialty)
-                DatePicker("Hire Date", selection: $hireDate, displayedComponents: .date)
-                Toggle("Active", isOn: $isActive)
+            // Sección Profesional
+            Section(header: Label("Información Profesional", systemImage: "briefcase.fill").foregroundStyle(.indigo)) {
+                HStack {
+                    Image(systemName: "academicons.fill").foregroundStyle(.gray)
+                    TextField("Especialidad (ej. Java Senior)", text: $specialty)
+                }
+                DatePicker("Fecha de Contratación", selection: $hireDate, displayedComponents: .date)
+                Toggle("Estado Activo", isOn: $isActive)
+                    .tint(.indigo)
             }
             
+            // Opción de Eliminar si está editando
             if isEditing {
                 Section {
                     Button(role: .destructive) {
@@ -66,25 +118,30 @@ struct AddEditTeacherView: View {
                         }
                         dismiss()
                     } label: {
-                        Text("Delete Teacher")
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        HStack {
+                            Spacer()
+                            Label("Eliminar Docente", systemImage: "trash.fill")
+                            Spacer()
+                        }
                     }
                 }
             }
         }
-        .navigationTitle(isEditing ? "Edit Teacher" : "Add Teacher")
+        .navigationTitle(isEditing ? "Editar Docente" : "Nuevo Docente")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
+                Button("Cancelar") {
                     dismiss()
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
+                Button("Guardar") {
                     saveTeacher()
                     dismiss()
                 }
+                .bold()
+                .foregroundStyle(.indigo)
             }
         }
     }
