@@ -9,53 +9,84 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @State private var searchText = ""
+    @State private var showingAddSheet = false
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        NavigationStack {
+            TeacherListView(searchText: searchText)
+                .navigationTitle("Teachers")
+                .searchable(text: $searchText, prompt: "Search teachers...")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showingAddSheet = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
                     }
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                .sheet(isPresented: $showingAddSheet) {
+                    NavigationStack {
+                        AddEditTeacherView(teacher: nil)
                     }
                 }
-            }
-        } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
         }
     }
 }
 
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+struct TeacherListView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var teachers: [Teacher]
+    
+    init(searchText: String) {
+        let predicate = #Predicate<Teacher> { teacher in
+            if searchText.isEmpty {
+                return true
+            } else {
+                return teacher.firstName.localizedStandardContains(searchText) ||
+                       teacher.lastName.localizedStandardContains(searchText) ||
+                       teacher.email.localizedStandardContains(searchText)
+            }
+        }
+        _teachers = Query(filter: predicate, sort: \Teacher.lastName)
+    }
+    
+    var body: some View {
+        List {
+            ForEach(teachers) { teacher in
+                NavigationLink(destination: AddEditTeacherView(teacher: teacher)) {
+                    TeacherRowView(teacher: teacher)
+                }
+            }
+            .onDelete(perform: deleteTeachers)
+        }
+    }
+    
+    private func deleteTeachers(offsets: IndexSet) {
+        for index in offsets {
+            modelContext.delete(teachers[index])
+        }
+    }
+}
+
+struct TeacherRowView: View {
+    let teacher: Teacher
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(teacher.fullName)
+                .font(.headline)
+                .foregroundStyle(.primary)
+            
+            Text(teacher.specialty)
+                .font(.subheadline)
+                .foregroundStyle(.blue)
+            
+            Text(teacher.email)
+                .font(.caption)
+                .foregroundStyle(.gray)
+        }
+        .padding(.vertical, 2)
+    }
 }
